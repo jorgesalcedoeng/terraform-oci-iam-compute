@@ -1,0 +1,66 @@
+#cloud-config
+package_update: true
+package_upgrade: true
+
+packages:
+  - nginx
+  - python3-pip
+
+runcmd:
+  # -----------------------------
+  # Firewall (UFW)
+  # -----------------------------
+  - apt install -y ufw
+  - ufw allow OpenSSH
+  - ufw allow 'Nginx HTTP'
+  - ufw --force enable
+
+  # -----------------------------
+  # Nginx
+  # -----------------------------
+  - systemctl enable nginx
+  - systemctl start nginx
+
+  # Crear página de inicio
+  - |
+    bash -c 'cat <<EOF > /var/www/html/index.html
+    <h1>VM desplegada con Terraform en OCI</h1>
+    <p>Host: $(hostname)</p>
+    <p>IP: $(hostname -I | awk "{print \$1}")</p>
+    <p>Estado OCI CLI: instalando...</p>
+    EOF'
+
+  # -----------------------------
+  # OCI CLI (Instance Principal)
+  # -----------------------------
+  # Instalar OCI CLI como usuario ubuntu
+  - su - ubuntu -c "pip3 install oci-cli --upgrade --user"
+
+  # Agregar al PATH
+  - su - ubuntu -c "echo 'export PATH=\$HOME/.local/bin:\$PATH' >> ~/.bashrc"
+
+  # Exportar PATH en esta sesión
+  - export PATH=/home/ubuntu/.local/bin:$PATH
+
+  # Validar instalación
+  - /home/ubuntu/.local/bin/oci --version
+
+  # Validar acceso con Instance Principal
+  - /home/ubuntu/.local/bin/oci os ns get --auth instance_principal
+
+  # (Opcional) Listar buckets para prueba real
+  - /home/ubuntu/.local/bin/oci os bucket list --auth instance_principal
+
+  # -----------------------------
+  # Actualizar página con resultado
+  # -----------------------------
+  - |
+    bash -c 'cat <<EOF > /var/www/html/index.html
+    <h1>VM desplegada con Terraform en OCI</h1>
+    <p>Host: $(hostname)</p>
+    <p>IP: $(hostname -I | awk "{print \$1}")</p>
+    <p>OCI CLI: OK</p>
+    <p>Instance Principal: OK</p>
+    EOF'
+
+  - systemctl restart nginx
