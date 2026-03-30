@@ -96,7 +96,7 @@ oci os ns get --auth instance_principal
 ### ✅ 3. Validar acceso al bucket
 
 ```bash
-oci os bucket list --auth instance_principal
+oci os bucket list --auth instance_principal --compartment-id <COMPARTMENT_ID>
 ```
 
 📌 Resultado esperado:
